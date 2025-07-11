@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global News Digest</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6; /* Blue */
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f0f2f5;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* Light gray */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* Medium gray */
+        }
+
+        /* Modal styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container">
+        <header class="text-center py-8 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl shadow-lg mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight">Global News Digest</h1>
+            <p class="mt-2 text-lg opacity-90">Powered by Gemini AI for insightful summaries</p>
+        </header>
+
+        <main>
+            <!-- News Generation Section -->
+            <section class="mb-8 p-6 bg-white rounded-xl shadow-md flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
+                <select
+                    id="moodSelector"
+                    class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 w-full md:w-auto"
+                >
+                    <option value="">Select Mood...</option>
+                    <option value="Excited">Excited</option>
+                    <option value="Relaxed">Relaxed</option>
+                    <option value="Curious">Curious</option>
+                    <option value="Thoughtful">Thoughtful</option>
+                    <option value="Inspired">Inspired</option>
+                    <option value="Amused">Amused</option>
+                    <option value="Global">Global Overview</option>
+                </select>
+                <input
+                    type="text"
+                    id="newsTopicInput"
+                    placeholder="or type your own topic..."
+                    class="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 placeholder-gray-400 w-full md:w-auto"
+                >
+                <button
+                    id="generateNewsBtn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 w-full md:w-auto"
+                >
+                    Generate News
+                </button>
+                <div id="loadingSpinner" class="loading-spinner"></div>
+            </section>
+
+            <section id="newsArticlesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- News articles will be dynamically loaded here -->
+                <div id="noNewsMessage" class="col-span-full text-center text-gray-500 text-lg py-10 hidden">
+                    <p>No news to display yet. Select a mood or enter a topic and click "Generate News"!</p>
+                </div>
+            </section>
+
+            <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-8" role="alert">
+                <strong class="font-bold">Error!</strong>
+                <span class="block sm:inline" id="errorText"></span>
+                <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                    <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" onclick="document.getElementById('errorMessage').classList.add('hidden');">
+                        <title>Close</title>
+                        <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 2.65a1.2 1.2 0 1 1-1.697-1.697L8.303 10l-2.651-2.651a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-2.651a1.2 1.2 0 1 1 1.697 1.697L11.697 10l2.651 2.651a1.2 1.2 0 0 1 0 1.698z"/>
+                    </svg>
+                </span>
+            </div>
+        </main>
+    </div>
+
+    <!-- Summary Modal -->
+    <div id="summaryModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button" onclick="document.getElementById('summaryModal').classList.add('hidden');">&times;</span>
+            <h2 class="text-2xl font-bold mb-4">Article Summary ✨</h2>
+            <div id="summaryContent" class="text-gray-700">
+                <div id="summaryLoadingSpinner" class="loading-spinner mx-auto" style="display: none;"></div>
+                <p id="summaryText"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // IMPORTANT: Replace 'YOUR_GEMINI_API_KEY' with your actual Gemini API Key.
+        // For production, it's highly recommended to proxy API calls through a backend server
+        // to keep your API key secure and avoid exposing it in client-side code.
+        const GEMINI_API_KEY = "AIzaSyAxUDoCVYkaJiXqMvXo6i9gF00G_YqtNuM"; // Leave this as is, Canvas will inject the key at runtime.
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+        const generateNewsBtn = document.getElementById('generateNewsBtn');
+        const newsTopicInput = document.getElementById('newsTopicInput');
+        const moodSelector = document.getElementById('moodSelector');
+        const newsArticlesContainer = document.getElementById('newsArticlesContainer');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const noNewsMessage = document.getElementById('noNewsMessage');
+
+        // Modal elements (for news summary)
+        const summaryModal = document.getElementById('summaryModal');
+        const summaryContent = document.getElementById('summaryContent');
+        const summaryText = document.getElementById('summaryText');
+        const summaryLoadingSpinner = document.getElementById('summaryLoadingSpinner');
+
+
+        // Mapping moods to potential news topics for Gemini
+        const moodTopics = {
+            "Excited": "positive news, breakthroughs, sports victories, inspiring achievements, exciting discoveries",
+            "Relaxed": "travel destinations, lifestyle tips, cultural events, feel-good stories, nature updates",
+            "Curious": "science discoveries, technology trends, historical insights, unexplained phenomena, research updates",
+            "Thoughtful": "global politics analysis, social issues, environmental challenges, economic trends, philosophical discussions",
+            "Inspired": "innovation stories, humanitarian efforts, artistic movements, personal growth, success stories",
+            "Amused": "quirky news, funny animal stories, lighthearted cultural observations, entertainment highlights",
+            "Global": "major world events, international relations, diverse cultural news, global trends, worldwide updates"
+        };
+
+        // Function to show error message
+        function showErrorMessage(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // Function to hide error message
+        function hideErrorMessage() {
+            errorMessage.classList.add('hidden');
+        }
+
+        // Function to get a placeholder image URL based on category
+        function getPlaceholderImage(category) {
+            const width = 600;
+            const height = 400;
+            let text = 'News';
+            let bgColor = 'cccccc';
+            let textColor = '666666';
+
+            switch (category.toLowerCase()) {
+                case 'technology':
+                case 'tech':
+                    text = 'Tech News';
+                    bgColor = '4a90e2'; // Blue
+                    textColor = 'ffffff';
+                    break;
+                case 'politics':
+                    text = 'Politics';
+                    bgColor = '8b5cf6'; // Purple
+                    textColor = 'ffffff';
+                    break;
+                case 'science':
+                    text = 'Science';
+                    bgColor = '10b981'; // Green
+                    textColor = 'ffffff';
+                    break;
+                case 'sports':
+                    text = 'Sports';
+                    bgColor = 'f59e0b'; // Orange
+                    textColor = 'ffffff';
+                    break;
+                case 'health':
+                    text = 'Health';
+                    bgColor = 'ef4444'; // Red
+                    textColor = 'ffffff';
+                    break;
+                case 'business':
+                    text = 'Business';
+                    bgColor = '34d399'; // Teal
+                    textColor = 'ffffff';
+                    break;
+                case 'environment':
+                    text = 'Environment';
+                    bgColor = '06b6d4'; // Cyan
+                    textColor = 'ffffff';
+                    break;
+                case 'culture':
+                case 'art':
+                    text = 'Culture';
+                    bgColor = 'ec4899'; // Pink
+                    textColor = 'ffffff';
+                    break;
+                case 'lifestyle':
+                    text = 'Lifestyle';
+                    bgColor = 'f97316'; // Orange-600
+                    textColor = 'ffffff';
+                    break;
+                case 'travel':
+                    text = 'Travel';
+                    bgColor = '6366f1'; // Indigo-500
+                    textColor = 'ffffff';
+                    break;
+                case 'innovation':
+                    text = 'Innovation';
+                    bgColor = '0ea5e9'; // Sky-500
+                    textColor = 'ffffff';
+                    break;
+                case 'humanitarian':
+                    text = 'Humanitarian';
+                    bgColor = '22c55e'; // Green-500
+                    textColor = 'ffffff';
+                    break;
+                case 'entertainment':
+                    text = 'Entertainment';
+                    bgColor = 'a855f7'; // Purple-500
+                    textColor = 'ffffff';
+                    break;
+                default:
+                    // Randomize for general news
+                    const colors = ['a8a29e', '6b7280', '9ca3af', 'd1d5db'];
+                    bgColor = colors[Math.floor(Math.random() * colors.length)];
+                    textColor = 'ffffff';
+                    break;
+            }
+            return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}?text=${encodeURIComponent(text)}`;
+        }
+
+        // Function to create a news card HTML
+        function createNewsCard(article) {
+            const imgUrl = getPlaceholderImage(article.category || 'general');
+            const cardHtml = `
+                <div class="card p-6 flex flex-col">
+                    <img src="${imgUrl}" alt="${article.title}" class="w-full h-48 object-cover rounded-lg mb-4">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">${article.title}</h3>
+                    <p class="text-gray-700 text-base flex-grow">${article.summary}</p>
+                    ${article.videoUrl ? `<a href="${article.videoUrl}" target="_blank" class="mt-4 text-blue-600 hover:underline">Watch Video</a>` : ''}
+                    <button class="summarize-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 mt-4" data-summary="${encodeURIComponent(article.summary)}">
+                        Summarize Article ✨
+                    </button>
+                </div>
+            `;
+            return cardHtml;
+        }
+
+        // Function to summarize an article using Gemini
+        async function summarizeArticle(articleSummary) {
+            summaryModal.classList.remove('hidden');
+            summaryLoadingSpinner.style.display = 'block';
+            summaryText.textContent = ''; // Clear previous summary
+
+            const prompt = `Please provide a very concise, one-sentence summary or extract the absolute key takeaway from the following text: "${articleSummary}"`;
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+            const payload = {
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "text/plain" // We expect plain text for a summary
+                }
+            };
+
+            try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    summaryText.textContent = result.candidates[0].content.parts[0].text;
+                } else {
+                    summaryText.textContent = "Could not generate a concise summary.";
+                }
+            } catch (error) {
+                console.error('Error summarizing article:', error);
+                summaryText.textContent = `Error: ${error.message}. Could not summarize article.`;
+            } finally {
+                summaryLoadingSpinner.style.display = 'none';
+            }
+        }
+
+        // Event listener for news generation button
+        generateNewsBtn.addEventListener('click', async () => {
+            let newsTopic = newsTopicInput.value.trim();
+            const selectedMood = moodSelector.value;
+
+            // If a mood is selected and no custom topic is entered, use the mood's topic
+            if (selectedMood && !newsTopic) {
+                newsTopic = moodTopics[selectedMood];
+                if (!newsTopic) { // Fallback if mood not found in map
+                    newsTopic = "latest global news";
+                }
+            } else if (!newsTopic && !selectedMood) {
+                showErrorMessage("Please select a mood or enter a news topic.");
+                return;
+            }
+
+            hideErrorMessage();
+            newsArticlesContainer.innerHTML = ''; // Clear previous articles
+            loadingSpinner.style.display = 'block'; // Show spinner
+            noNewsMessage.classList.add('hidden'); // Hide no news message
+
+            // Construct the prompt for Gemini
+            const prompt = `Generate 3-5 short, distinct news articles about "${newsTopic}". Each article should have a 'title', a 'summary' (2-3 sentences), and a 'category' (e.g., 'technology', 'politics', 'science', 'sports', 'health', 'business', 'environment', 'culture', 'lifestyle', 'travel', 'innovation', 'humanitarian', 'entertainment'). Provide the output as a JSON array of objects.`;
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+            const payload = {
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "title": { "type": "STRING" },
+                                "summary": { "type": "STRING" },
+                                "category": { "type": "STRING" }
+                            },
+                            "propertyOrdering": ["title", "summary", "category"]
+                        }
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    let articles;
+                    try {
+                        articles = JSON.parse(jsonString);
+                    } catch (parseError) {
+                        console.error("Failed to parse JSON from Gemini:", parseError);
+                        showErrorMessage("Failed to parse news articles. The AI might have returned malformed JSON. Please try again.");
+                        return;
+                    }
+
+                    if (articles && articles.length > 0) {
+                        articles.forEach(article => {
+                            if (article.title && article.summary) {
+                                newsArticlesContainer.innerHTML += createNewsCard(article);
+                            }
+                        });
+                        // Attach event listeners to new summarize buttons
+                        document.querySelectorAll('.summarize-btn').forEach(button => {
+                            button.addEventListener('click', (event) => {
+                                const summaryToSummarize = decodeURIComponent(event.target.dataset.summary);
+                                summarizeArticle(summaryToSummarize);
+                            });
+                        });
+                    } else {
+                        noNewsMessage.classList.remove('hidden');
+                        noNewsMessage.querySelector('p').textContent = "Gemini AI couldn't generate news for that topic. Please try a different topic or mood.";
+                    }
+
+                } else {
+                    noNewsMessage.classList.remove('hidden');
+                    noNewsMessage.querySelector('p').textContent = "Gemini AI did not return any content. Please try again.";
+                }
+
+            } catch (error) {
+                console.error('Error fetching news:', error);
+                showErrorMessage(`Failed to fetch news: ${error.message}. Please check your API key and network connection.`);
+                noNewsMessage.classList.remove('hidden');
+                noNewsMessage.querySelector('p').textContent = "An error occurred while fetching news. Please try again.";
+            } finally {
+                loadingSpinner.style.display = 'none'; // Hide spinner
+            }
+        });
+
+        // Initial load: Show initial news message
+        document.addEventListener('DOMContentLoaded', () => {
+            if (newsArticlesContainer.children.length === 0) {
+                noNewsMessage.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
