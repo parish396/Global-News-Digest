@@ -6,7 +6,7 @@ import os
 # It's recommended to load this from an environment variable for security.
 # Example: export GEMINI_API_KEY='your_key_here'
 # For local testing, you can directly paste it here, but be careful not to commit it.
-API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyAxUDoCVYkaJiXqMvXo6i9gF00G_YqtNuM") # Replace with your key if not using env var
+API_KEY = os.getenv("GEMINI_API_KEY", "add your key") # Replace with your key if not using env var
 
 if not API_KEY:
     print("Error: GEMINI_API_KEY environment variable not set or API_KEY not provided.")
